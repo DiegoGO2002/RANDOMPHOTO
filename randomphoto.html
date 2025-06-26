@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>RANDOMPHOTO</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px;
+    }
+    h1 {
+      font-size: 3rem;
+      margin-bottom: 10px;
+    }
+    #random-photo {
+      max-width: 90vw;
+      max-height: 300px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+      object-fit: cover;
+    }
+    input, button {
+      font-size: 1.2rem;
+      padding: 10px;
+      margin: 5px;
+    }
+    video, img {
+      max-width: 300px;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      margin: 10px 0;
+    }
+    .hidden { display: none; }
+  </style>
+</head>
+<body>
+
+  <h1>RANDOMPHOTO</h1>
+  <img id="random-photo" alt="Foto aleatoria de internet" />
+
+  <div id="login-section">
+    <input type="email" id="email" placeholder="Correo electrónico" />
+    <input type="password" id="password" placeholder="Contraseña" />
+    <button id="login-btn">Entrar</button>
+    <div id="login-error" style="color:red;"></div>
+  </div>
+
+  <div id="camera-section" class="hidden">
+    <video id="video" autoplay playsinline></video><br/>
+    <button id="take-photo-btn">Tomar Foto</button><br/>
+    <canvas id="canvas" class="hidden"></canvas>
+    <img id="photo" alt="Foto tomada" class="hidden"/>
+  </div>
+
+  <div id="other-photo-section" class="hidden">
+    <h2>Foto del otro usuario</h2>
+    <img id="other-photo" alt="Foto del otro" />
+  </div>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
+
+  <script>
+    // Imagen aleatoria al abrir
+    document.getElementById('random-photo').src = 'https://source.unsplash.com/random/600x400?' + new Date().getTime();
+
+    // Configuración Firebase (pon aquí tus datos reales)
+    const firebaseConfig = {
+      apiKey: "TU_API_KEY",
+      authDomain: "TU_AUTH_DOMAIN",
+      projectId: "TU_PROJECT_ID",
+      storageBucket: "TU_STORAGE_BUCKET",
+      messagingSenderId: "TU_MESSAGING_SENDER_ID",
+      appId: "TU_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const storage = firebase.storage();
+
+    // Elementos HTML
+    const loginSection = document.getElementById('login-section');
+    const cameraSection = document.getElementById('camera-section');
+    const otherPhotoSection = document.getElementById('other-photo-section');
+    const emailInput = document.getElementById('email');
+    const passwordInput = document.getElementById('password');
+    const loginBtn = document.getElementById('login-btn');
+    const loginError = document.getElementById('login-error');
+    const video = document.getElementById('video');
+    const takePhotoBtn = document.getElementById('take-photo-btn');
+    const canvas = document.getElementById('canvas');
+    const photo = document.getElementById('photo');
+    const otherPhoto = document.getElementById('other-photo');
+
+    let currentUser = null;
+    let username = null;
+
+    loginBtn.onclick = () => {
+      const email = emailInput.value.trim();
+      const password = passwordInput.value.trim();
+
+      auth.signInWithEmailAndPassword(email, password)
+        .then((userCredential) => {
+          currentUser = userCredential.user;
+          username = email.includes("diego") ? "diego" : "afeni";
+          loginSection.classList.add('hidden');
+          cameraSection.classList.remove('hidden');
+          otherPhotoSection.classList.remove('hidden');
+          startCamera();
+          loadOtherUserPhoto();
+        })
+        .catch((error) => {
+          loginError.textContent = 'Error al iniciar sesión: ' + error.message;
+        });
+    };
+
+    function startCamera() {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+          video.srcObject = stream;
+        })
+        .catch((err) => {
+          alert('No se pudo acceder a la cámara: ' + err);
+        });
+    }
+
+    takePhotoBtn.onclick = () => {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const dataUrl = canvas.toDataURL('image/png');
+      photo.src = dataUrl;
+      photo.classList.remove('hidden');
+      uploadPhoto(dataUrl);
+    };
+
+    function uploadPhoto(dataUrl) {
+      const storageRef = storage.ref(`photos/${username}.png`);
+      fetch(dataUrl)
+        .then(res => res.blob())
+        .then(blob => {
+          storageRef.put(blob)
+            .then(() => {
+              loadOtherUserPhoto();
+            })
+            .catch(err => {
+              alert('Error al subir la foto: ' + err);
+            });
+        });
+    }
+
+    function loadOtherUserPhoto() {
+      const otherUser = username === "diego" ? "afeni" : "diego";
+      const ref = storage.ref(`photos/${otherUser}.png`);
+      ref.getDownloadURL()
+        .then((url) => {
+          otherPhoto.src = url;
+        })
+        .catch(() => {
+          otherPhoto.alt = "Aún no hay foto del otro usuario.";
+          otherPhoto.src = "";
+        });
+    }
+  </script>
+
+</body>
+</html>
