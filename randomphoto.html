@@ -59,6 +59,8 @@
     <button id="take-photo-btn">Tomar Foto</button><br/>
     <canvas id="canvas" class="hidden"></canvas>
     <img id="photo" alt="Foto tomada" class="hidden"/>
+    <br/>
+    <button id="logout-btn">Cerrar sesión</button>
   </div>
 
   <div id="other-photo-section" class="hidden">
@@ -76,16 +78,16 @@
     document.getElementById('random-photo').src =
       'https://source.unsplash.com/random/600x400?' + new Date().getTime();
 
-    // Configuración de Firebase (cambia estos valores con los de tu proyecto)
-   const firebaseConfig = {
-  apiKey: "AIzaSyCS_a5bQUj2jzJfc6gCEzN9jNXSx__RimE",
-  authDomain: "randomphoto-52a99.firebaseapp.com",
-  projectId: "randomphoto-52a99",
-  storageBucket: "randomphoto-52a99.firebasestorage.app",
-  messagingSenderId: "1063866426118",
-  appId: "1:1063866426118:web:44a380305409b814a9b487",
-  measurementId: "G-FNNJHK14QM"
-};
+    // Configuración de Firebase corregida
+    const firebaseConfig = {
+      apiKey: "AIzaSyCS_a5bQUj2jzJfc6gCEzN9jNXSx__RimE",
+      authDomain: "randomphoto-52a99.firebaseapp.com",
+      projectId: "randomphoto-52a99",
+      storageBucket: "randomphoto-52a99.appspot.com",  // <-- corregido aquí
+      messagingSenderId: "1063866426118",
+      appId: "1:1063866426118:web:44a380305409b814a9b487",
+      measurementId: "G-FNNJHK14QM"
+    };
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
@@ -104,6 +106,7 @@
     const canvas = document.getElementById('canvas');
     const photo = document.getElementById('photo');
     const otherPhoto = document.getElementById('other-photo');
+    const logoutBtn = document.getElementById('logout-btn');
 
     let currentUser = null;
     let username = null;
@@ -111,6 +114,9 @@
     loginBtn.onclick = () => {
       const email = emailInput.value.trim();
       const password = passwordInput.value.trim();
+
+      loginError.textContent = "";
+      loginBtn.disabled = true;
 
       auth.signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
@@ -121,6 +127,7 @@
             username = 'afeni';
           } else {
             loginError.textContent = 'Correo no reconocido.';
+            loginBtn.disabled = false;
             return;
           }
           loginSection.classList.add('hidden');
@@ -131,6 +138,9 @@
         })
         .catch((error) => {
           loginError.textContent = 'Error: ' + error.message;
+        })
+        .finally(() => {
+          loginBtn.disabled = false;
         });
     };
 
@@ -176,12 +186,35 @@
       ref.getDownloadURL()
         .then((url) => {
           otherPhoto.src = url;
+          otherPhoto.alt = "Foto del otro usuario";
         })
         .catch(() => {
           otherPhoto.alt = "Aún no hay foto del otro usuario.";
           otherPhoto.src = "";
         });
     }
+
+    logoutBtn.onclick = () => {
+      auth.signOut().then(() => {
+        // Detener cámara
+        if(video.srcObject){
+          video.srcObject.getTracks().forEach(track => track.stop());
+        }
+        // Reset UI
+        currentUser = null;
+        username = null;
+        emailInput.value = '';
+        passwordInput.value = '';
+        photo.src = '';
+        photo.classList.add('hidden');
+        otherPhoto.src = '';
+        otherPhoto.alt = '';
+        loginError.textContent = '';
+        cameraSection.classList.add('hidden');
+        otherPhotoSection.classList.add('hidden');
+        loginSection.classList.remove('hidden');
+      });
+    };
   </script>
 
 </body>
