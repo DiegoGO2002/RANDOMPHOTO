@@ -72,10 +72,11 @@
   <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-storage-compat.js"></script>
 
   <script>
-    // Imagen aleatoria al abrir
-    document.getElementById('random-photo').src = 'https://source.unsplash.com/random/600x400?' + new Date().getTime();
+    // Imagen aleatoria
+    document.getElementById('random-photo').src =
+      'https://source.unsplash.com/random/600x400?' + new Date().getTime();
 
-    // Configuración Firebase (pon aquí tus datos reales)
+    // Configuración de Firebase (cambia estos valores con los de tu proyecto)
     const firebaseConfig = {
       apiKey: "TU_API_KEY",
       authDomain: "TU_AUTH_DOMAIN",
@@ -89,7 +90,7 @@
     const auth = firebase.auth();
     const storage = firebase.storage();
 
-    // Elementos HTML
+    // Elementos
     const loginSection = document.getElementById('login-section');
     const cameraSection = document.getElementById('camera-section');
     const otherPhotoSection = document.getElementById('other-photo-section');
@@ -113,7 +114,14 @@
       auth.signInWithEmailAndPassword(email, password)
         .then((userCredential) => {
           currentUser = userCredential.user;
-          username = email.includes("diego") ? "diego" : "afeni";
+          if (email === 'diego@random.com') {
+            username = 'diego';
+          } else if (email === 'afeni@random.com') {
+            username = 'afeni';
+          } else {
+            loginError.textContent = 'Correo no reconocido.';
+            return;
+          }
           loginSection.classList.add('hidden');
           cameraSection.classList.remove('hidden');
           otherPhotoSection.classList.remove('hidden');
@@ -121,7 +129,7 @@
           loadOtherUserPhoto();
         })
         .catch((error) => {
-          loginError.textContent = 'Error al iniciar sesión: ' + error.message;
+          loginError.textContent = 'Error: ' + error.message;
         });
     };
 
@@ -162,7 +170,7 @@
     }
 
     function loadOtherUserPhoto() {
-      const otherUser = username === "diego" ? "afeni" : "diego";
+      const otherUser = username === 'diego' ? 'afeni' : 'diego';
       const ref = storage.ref(`photos/${otherUser}.png`);
       ref.getDownloadURL()
         .then((url) => {
