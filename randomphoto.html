@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>RANDOMPHOTO - Solo Cámara</title>
+  <title>RANDOMPHOTO - Cámara Offline</title>
   <style>
     body {
       margin: 0;
@@ -17,8 +17,8 @@
       padding: 20px;
     }
     h1 {
-      font-size: 3rem;
-      margin-bottom: 10px;
+      font-size: 2.5rem;
+      margin-bottom: 20px;
     }
     video, img {
       max-width: 90vw;
@@ -30,7 +30,8 @@
     button {
       font-size: 1.2rem;
       padding: 10px 20px;
-      margin: 10px;
+      margin: 10px 5px;
+      cursor: pointer;
     }
     .hidden { display: none; }
   </style>
@@ -39,25 +40,48 @@
 
   <h1>RANDOMPHOTO</h1>
 
-  <video id="video" autoplay playsinline></video><br/>
-  <button id="take-photo-btn">Tomar Foto</button><br/>
+  <video id="video" autoplay playsinline></video>
   <canvas id="canvas" class="hidden"></canvas>
-  <img id="photo" alt="Foto tomada" class="hidden"/>
+  <img id="photo" alt="Foto tomada" class="hidden" />
+  
+  <div>
+    <button id="take-photo-btn">📸 Tomar Foto</button>
+    <button id="download-btn" class="hidden">⬇️ Descargar Foto</button>
+    <button id="reset-btn" class="hidden">🔁 Reiniciar Cámara</button>
+  </div>
 
   <script>
     const video = document.getElementById('video');
     const canvas = document.getElementById('canvas');
     const photo = document.getElementById('photo');
     const takePhotoBtn = document.getElementById('take-photo-btn');
+    const downloadBtn = document.getElementById('download-btn');
+    const resetBtn = document.getElementById('reset-btn');
 
-    // Iniciar cámara al cargar
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then((stream) => {
+    let stream;
+
+    // Iniciar cámara
+    async function startCamera() {
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ video: true });
         video.srcObject = stream;
-      })
-      .catch((err) => {
-        alert('No se pudo acceder a la cámara: ' + err);
-      });
+        photo.classList.add('hidden');
+        downloadBtn.classList.add('hidden');
+        resetBtn.classList.add('hidden');
+        video.classList.remove('hidden');
+        takePhotoBtn.disabled = false;
+      } catch (err) {
+        alert('No se pudo acceder a la cámara: ' + err.message);
+      }
+    }
+
+    // Detener cámara
+    function stopCamera() {
+      if (stream) {
+        stream.getTracks().forEach(track => track.stop());
+        stream = null;
+      }
+    }
 
     // Tomar foto
     takePhotoBtn.onclick = () => {
@@ -68,8 +92,32 @@
       const dataUrl = canvas.toDataURL('image/png');
       photo.src = dataUrl;
       photo.classList.remove('hidden');
+      downloadBtn.classList.remove('hidden');
+      resetBtn.classList.remove('hidden');
+      video.classList.add('hidden');
+      takePhotoBtn.disabled = true;
+      stopCamera();
     };
-  </script>
 
+    // Descargar imagen
+    downloadBtn.onclick = () => {
+      const link = document.createElement('a');
+      link.href = photo.src;
+      link.download = 'foto.png';
+      link.click();
+    };
+
+    // Reiniciar cámara
+    resetBtn.onclick = () => {
+      photo.classList.add('hidden');
+      downloadBtn.classList.add('hidden');
+      resetBtn.classList.add('hidden');
+      startCamera();
+    };
+
+    // Inicia al cargar
+    startCamera();
+  </script>
+  
 </body>
 </html>
